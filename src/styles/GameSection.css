@@ -1,0 +1,87 @@
+.game {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	width: 100%;
+	padding: 18px 0 26px;
+	background: var(--color-bg);
+}
+
+.game__bg {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.game__sr-title {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+.game__arena {
+	position: relative;
+	z-index: 1;
+	width: auto;
+	min-height: 100vh;
+	border-radius: 0;
+	box-shadow: none;
+	overflow: hidden;
+	background: transparent;
+}
+
+.game__canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+	cursor: crosshair;
+	touch-action: manipulation;
+}
+
+.game__overlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 18px;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.game__card {
+	pointer-events: auto;
+	width: min(520px, 92vw);
+	background: #d4d0c6;
+	opacity: 80%;
+	color: #151311;
+	border-radius: 22px;
+	padding: 18px 18px 16px;
+	text-align: center;
+	box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 768px) {
+	.game__arena {
+		min-height: 58vh;
+	}
+
+	.game__overlay {
+		padding: 14px;
+	}
+
+	.game__canvas {
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+	}
+}

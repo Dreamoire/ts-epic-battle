@@ -1,0 +1,31 @@
+:root {
+	--color-bg: #14120f;
+	--color-bg-overlay: rgba(20, 18, 15, 0.75);
+	--color-text-light: #ede7dc;
+	--color-text-dark: #151311;
+	--color-accent: #b35c2e;
+}
+
+html,
+body {
+	height: 100%;
+	background: var(--color-bg);
+}
+
+body {
+	color: var(--color-text-light);
+}
+
+.page-layout {
+	min-height: 100vh;
+}
+
+.container {
+	width: 100%;
+}
+
+h1,
+h2 {
+	margin: 0;
+	color: var(--color-accent);
+}

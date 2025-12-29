@@ -1,0 +1,99 @@
+@font-face {
+	font-family: "Cinzel Decorative";
+	src: url("../assets/fonts/CinzelDecorative-Regular.ttf") format("truetype");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Cinzel Decorative";
+	src: url("../assets/fonts/CinzelDecorative-Bold.ttf") format("truetype");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Cinzel Decorative";
+	src: url("../assets/fonts/CinzelDecorative-Black.ttf") format("truetype");
+	font-weight: 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Libre Baskerville";
+	src: url("../assets/fonts/LibreBaskerville-Regular.otf") format("opentype");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Libre Baskerville";
+	src: url("../assets/fonts/LibreBaskerville-Italic.otf") format("opentype");
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Libre Baskerville";
+	src: url("../assets/fonts/LibreBaskerville-Bold.otf") format("opentype");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	background-color: var(--color-bg);
+}
+
+:root {
+	--color-bg: #14120f;
+	--color-bg-overlay: rgba(20, 18, 15, 0.75);
+	--color-text-light: #ede7dc;
+	--color-text-dark: #151311;
+	--color-accent: #ef7515;
+
+	--font-heading: "Cinzel Decorative", "Times New Roman", "Georgia", serif;
+	--font-text: "Libre Baskerville", "Georgia", serif;
+}
+
+body {
+	font-family: "Libre Baskerville", "Georgia", serif;
+	font-size: 1.1rem;
+	line-height: 1.7rem;
+	font-weight: 400;
+	background-color: var(--color-bg);
+	color: var(--color-text-light);
+}
+
+h1 {
+	font-family: "Cinzel Decorative", serif;
+	color: var(--color-accent);
+	margin: 0;
+	text-transform: none;
+	font-size: clamp(1.3rem, 2.6vw, 2.1rem);
+	line-height: clamp(2.2rem, 5vw, 3.5rem);
+}
+
+h2 {
+	font-family: "Cinzel Decorative", serif;
+	color: var(--color-accent);
+	margin: 0;
+	text-transform: none;
+	font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+	line-height: 2.1rem;
+}

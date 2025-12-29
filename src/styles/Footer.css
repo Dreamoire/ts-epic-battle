@@ -1,0 +1,65 @@
+.footer {
+	background-color: #151311;
+	padding: 1.25rem 1rem;
+	text-align: center;
+	position: relative;
+	isolation: isolate;
+}
+
+.footer::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: -1;
+
+	background:
+		repeating-linear-gradient(
+			135deg,
+			rgba(237, 231, 220, 0.07) 0,
+			rgba(237, 231, 220, 0.07) 1px,
+			transparent 1px,
+			transparent 12px
+		),
+		repeating-linear-gradient(
+			45deg,
+			rgba(239, 117, 21, 0.12) 0,
+			rgba(239, 117, 21, 0.12) 1px,
+			transparent 1px,
+			transparent 14px
+		),
+		repeating-linear-gradient(
+			90deg,
+			transparent 0,
+			transparent 64px,
+			rgba(239, 117, 21, 0.1) 64px,
+			rgba(239, 117, 21, 0.1) 66px
+		), linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55));
+}
+
+.footer__text {
+	margin: 0;
+	color: #ede7dc;
+	font-size: 0.95rem;
+	line-height: 1.6;
+}
+
+.footer__link {
+	color: #ede7dc;
+	text-decoration: none;
+	transition: color 0.2s ease;
+}
+
+.footer__link:hover,
+.footer__link:focus-visible {
+	color: #b35c2e;
+}
+
+.footer__sep {
+	color: #ede7dc;
+}
+
+.footer__year {
+	margin-left: 0.25rem;
+	color: #ede7dc;
+}
