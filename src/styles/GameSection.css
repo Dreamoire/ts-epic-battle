@@ -1,8 +1,10 @@
 .game {
 	position: relative;
-	overflow: hidden;
+	overflow-x: clip;
+	overflow-y: hidden;
 	isolation: isolate;
 	width: 100%;
+	max-width: 100%;
 	padding: 18px 0 26px;
 	background: var(--color-bg);
 }
@@ -29,8 +31,9 @@
 .game__arena {
 	position: relative;
 	z-index: 1;
-	width: auto;
-	min-height: 100vh;
+	width: 100%;
+	max-width: 100%;
+	min-height: 100svh;
 	border-radius: 0;
 	box-shadow: none;
 	overflow: hidden;
