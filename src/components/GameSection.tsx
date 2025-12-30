@@ -95,6 +95,12 @@ const HERO_MAX_H_START = 400;
 const HERO_MAX_H_PLAY = 350;
 const MONSTER_MAX_H = 450;
 
+function scorePerKill(d: Difficulty): number {
+	if (d === "easy") return 25;
+	if (d === "normal") return 40;
+	return 60;
+}
+
 function vec(x: number, y: number): Vec2 {
 	return { x, y };
 }
@@ -436,7 +442,6 @@ export function GameSection(): JSX.Element {
 	const resetGameState = useCallback((): void => {
 		monstersRef.current = [];
 		activeKeysRef.current = new Set<MonsterKey>();
-		setScore(0);
 		setKills(0);
 		setLastFacing("right");
 	}, []);
@@ -576,7 +581,7 @@ export function GameSection(): JSX.Element {
 			const m = monsters[i];
 			if (hitTestMonster(m, clickPos)) {
 				killMonster(m);
-				setScore((s) => s + SCORE_PER_KILL);
+				setScore((s) => s + scorePerKill(difficultyRef.current));
 				setKills((k) => k + 1);
 				break;
 			}
