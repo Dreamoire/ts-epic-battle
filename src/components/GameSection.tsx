@@ -19,8 +19,12 @@ import monsterHuskySrc from "../assets/img/monster-husky.png";
 import monsterLoopSrc from "../assets/img/monster-loop.png";
 import monsterModuleSrc from "../assets/img/monster-module.png";
 import monsterSnakeSrc from "../assets/img/monster-snake.png";
-import monsterAbassSrc from "../assets/img/moster-abass.png";
+import monsterZombieSrc from "../assets/img/monster-zombie.png";
 import monsterAbass2Src from "../assets/img/moster-abass-2.png";
+import monsterAbassSrc from "../assets/img/moster-abass.png";
+
+import swordCursorSrc from "../assets/img/sword-cursor.png";
+import swordHitSrc from "../assets/audio/sword-sound.mp3";
 
 import "../styles/GameSection.css";
 
@@ -40,6 +44,7 @@ type MonsterKey =
 	| "monster-crystal"
 	| "monster-cors"
 	| "monster-husky"
+	| "monster-zombie"
 	| "monster-404"
 	| "monster-loop"
 	| "monster-module"
@@ -58,7 +63,7 @@ type AssetKey =
 	| "hero-win"
 	| MonsterKey;
 
-type MonsterRole = "text-left" | "text-right" | "flip-when-right" | "front";
+type MonsterRole = "text-left" | "text-right" | "flip-when-left" | "front";
 
 type MonsterDef = {
 	key: MonsterKey;
@@ -84,12 +89,11 @@ type MonsterState = {
 type GamePhase = "idle" | "playing" | "win" | "gameover";
 
 const SCORE_PER_KILL = 25;
-const KILLS_TO_WIN = 10;
+const KILLS_TO_WIN = 20;
 
-// Максимальные высоты (как ты попросила)
 const HERO_MAX_H_START = 400;
-const HERO_MAX_H_PLAY = 300;
-const MONSTER_MAX_H = 200;
+const HERO_MAX_H_PLAY = 350;
+const MONSTER_MAX_H = 450;
 
 function vec(x: number, y: number): Vec2 {
 	return { x, y };
@@ -156,6 +160,12 @@ const MONSTERS: MonsterDef[] = [
 		role: "text-left",
 		spawn: ["left"],
 	},
+	{
+		key: "monster-zombie",
+		src: monsterZombieSrc,
+		role: "text-left",
+		spawn: ["left"],
+	},
 
 	{
 		key: "monster-404",
@@ -179,33 +189,33 @@ const MONSTERS: MonsterDef[] = [
 	{
 		key: "monster-1",
 		src: monster1Src,
-		role: "flip-when-right",
+		role: "flip-when-left",
 		spawn: ["left", "right", "bottom"],
 	},
 	{
 		key: "monster-abass",
 		src: monsterAbassSrc,
-		role: "flip-when-right",
+		role: "flip-when-left",
 		spawn: ["left", "right", "bottom"],
 	},
 	{
 		key: "monster-abass-2",
 		src: monsterAbass2Src,
-		role: "flip-when-right",
-		spawn: ["left", "right", "bottom"],
-	},
-	{
-		key: "monster-crocodile",
-		src: monsterCrocodileSrc,
-		role: "flip-when-right",
+		role: "flip-when-left",
 		spawn: ["left", "right", "bottom"],
 	},
 
 	{
+		key: "monster-crocodile",
+		src: monsterCrocodileSrc,
+		role: "text-right",
+		spawn: ["right"],
+	},
+	{
 		key: "monster-abandon",
 		src: monsterAbandonSrc,
-		role: "front",
-		spawn: ["left", "right", "bottom"],
+		role: "text-right",
+		spawn: ["right"],
 	},
 	{
 		key: "monster-asdf",
@@ -216,13 +226,18 @@ const MONSTERS: MonsterDef[] = [
 	{
 		key: "monster-snake",
 		src: monsterSnakeSrc,
-		role: "front",
-		spawn: ["left", "right", "bottom"],
+		role: "text-right",
+		spawn: ["right"],
 	},
 ];
 
 function pickRandom<T>(arr: readonly T[]): T {
-	return arr[Math.floor(Math.random() * arr.length)] ?? arr[0]!;
+	const index = Math.floor(Math.random() * arr.length);
+	const item = arr[index];
+	if (item === undefined) {
+		throw new Error("pickRandom called with an empty array");
+	}
+	return item;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -268,13 +283,12 @@ function computeCanvasSize(canvas: HTMLCanvasElement): void {
 }
 
 export function GameSection(): JSX.Element {
+	// Refs
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
 	const rafRef = useRef<number | null>(null);
 	const spawnTimerRef = useRef<number | null>(null);
 
 	const imagesRef = useRef<Record<AssetKey, HTMLImageElement> | null>(null);
-
 	const monstersRef = useRef<MonsterState[]>([]);
 	const activeKeysRef = useRef<Set<MonsterKey>>(new Set());
 
@@ -290,6 +304,9 @@ export function GameSection(): JSX.Element {
 	const killsRef = useRef(0);
 	const lastFacingRef = useRef<Facing>("right");
 
+	const hitSoundRef = useRef<HTMLAudioElement | null>(null);
+
+	// State
 	const [phase, setPhase] = useState<GamePhase>("idle");
 	const [difficulty, setDifficulty] = useState<Difficulty>("easy");
 	const [score, setScore] = useState(0);
@@ -297,6 +314,7 @@ export function GameSection(): JSX.Element {
 	const [assetsReady, setAssetsReady] = useState(false);
 	const [lastFacing, setLastFacing] = useState<Facing>("right");
 
+	// Mirror state -> refs
 	useEffect(() => {
 		phaseRef.current = phase;
 	}, [phase]);
@@ -316,6 +334,46 @@ export function GameSection(): JSX.Element {
 	useEffect(() => {
 		lastFacingRef.current = lastFacing;
 	}, [lastFacing]);
+
+	// Cursor sword only during battle (desktop only)
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+
+		const isCoarse = window.matchMedia("(pointer: coarse)").matches;
+		if (isCoarse) {
+			canvas.style.cursor = "default";
+			return;
+		}
+
+		if (phase === "playing") {
+			// hotspot: adjust to where the "tip" of the sword is in your PNG
+			canvas.style.cursor = `url("${swordCursorSrc}") 10 2, crosshair`;
+		} else {
+			canvas.style.cursor = "default";
+		}
+
+		return () => {
+			canvas.style.cursor = "default";
+		};
+	}, [phase]);
+
+	// Create audio once after assets ready
+	useEffect(() => {
+		if (!assetsReady) return;
+
+		const isMobile = window.matchMedia("(pointer: coarse)").matches;
+
+		const hit = new Audio(swordHitSrc);
+		hit.preload = "auto";
+		hit.volume = isMobile ? 0.45 : 0.6;
+
+		hitSoundRef.current = hit;
+
+		return () => {
+			hitSoundRef.current = null;
+		};
+	}, [assetsReady]);
 
 	const bgStyle = useMemo(() => ({ backgroundImage: `url(${bgMainSrc})` }), []);
 
@@ -339,7 +397,6 @@ export function GameSection(): JSX.Element {
 	}, [stopRaf, stopSpawn]);
 
 	const endGameOver = useCallback((): void => {
-		// НЕ останавливаем raf — просто перестаём спавнить и чистим монстров
 		stopSpawn();
 		monstersRef.current = [];
 		activeKeysRef.current = new Set<MonsterKey>();
@@ -399,6 +456,12 @@ export function GameSection(): JSX.Element {
 	const killMonster = useCallback((m: MonsterState): void => {
 		if (m.isDying) return;
 
+		const audio = hitSoundRef.current;
+		if (audio) {
+			audio.currentTime = 0;
+			audio.play().catch(() => {});
+		}
+
 		m.isDying = true;
 		m.deathT = 0;
 
@@ -440,8 +503,7 @@ export function GameSection(): JSX.Element {
 
 		const img = images[def.key];
 
-		// Монстры: нормальный размер, не «слишком маленькие на большом экране»
-		const targetH = rect.height * 0.18; // базовая доля от арены
+		const targetH = rect.height * 0.18;
 		const { w, h } = fitSizeByMaxHeight(
 			img,
 			targetH,
@@ -478,7 +540,6 @@ export function GameSection(): JSX.Element {
 		const toward = unit(sub(hero.pos, monsterCenter));
 
 		const speed = difficultySpeed(difficultyRef.current);
-
 		const vel = mul(toward, 1.5 * speed);
 
 		monstersRef.current.push({
@@ -522,7 +583,7 @@ export function GameSection(): JSX.Element {
 		}
 	}
 
-	// Preload images once (typed cleanly)
+	// Preload images once
 	useEffect(() => {
 		let isMounted = true;
 
@@ -569,7 +630,7 @@ export function GameSection(): JSX.Element {
 		};
 	}, []);
 
-	// Main RAF loop (always running once assets are ready)
+	// Main RAF loop
 	useEffect(() => {
 		if (!assetsReady) return;
 
@@ -593,7 +654,6 @@ export function GameSection(): JSX.Element {
 			const images = imagesRef.current;
 			if (!images) return;
 
-			// Hero sizing: респонсивно, но с твоими max-ограничениями
 			const hero = heroRef.current;
 			const heroKey = getHeroImageKey(phaseRef.current);
 			const heroImg = images[heroKey];
@@ -613,6 +673,7 @@ export function GameSection(): JSX.Element {
 
 				hero.size = Math.max(w, h);
 				hero.hitRadius = Math.min(w, h) * 0.34;
+
 				const battlefieldY = 0.45;
 				hero.pos = vec(rect.width / 2, rect.height * battlefieldY);
 
@@ -626,8 +687,7 @@ export function GameSection(): JSX.Element {
 				ctx.save();
 				ctx.globalAlpha = m.alpha;
 
-				const mustFlip =
-					m.role === "flip-when-right" && m.spawnSide === "right";
+				const mustFlip = m.role === "flip-when-left" && m.spawnSide === "left";
 				if (mustFlip) {
 					ctx.translate(m.pos.x + m.w / 2, 0);
 					ctx.scale(-1, 1);
@@ -650,7 +710,6 @@ export function GameSection(): JSX.Element {
 
 			for (const m of monsters) {
 				if (!m.isDying) {
-					// движение только в игре
 					if (phaseRef.current === "playing") {
 						m.pos = add(m.pos, m.vel);
 
@@ -667,7 +726,6 @@ export function GameSection(): JSX.Element {
 				}
 			}
 
-			// чистим умерших
 			monstersRef.current = monsters.filter((m) => {
 				if (!m.isDying) return true;
 				if (m.deathT < 1) return true;
@@ -675,12 +733,10 @@ export function GameSection(): JSX.Element {
 				return false;
 			});
 
-			// win-check
 			if (phaseRef.current === "playing" && killsRef.current >= KILLS_TO_WIN) {
 				endWin();
 			}
 
-			// лёгкое ограничение: если улетели далеко, чистим (чтобы не копились)
 			monstersRef.current = monstersRef.current.filter((m) => {
 				const out =
 					m.pos.x < -m.w - 220 ||
@@ -719,11 +775,10 @@ export function GameSection(): JSX.Element {
 		stopAll,
 	]);
 
-	// Spawn loop (ВАЖНО: тут НЕ трогаем raf)
+	// Spawn loop (do not touch raf here)
 	useEffect(() => {
 		if (!assetsReady) return;
 
-		// остановить только spawn-таймер
 		if (spawnTimerRef.current !== null) {
 			window.clearInterval(spawnTimerRef.current);
 			spawnTimerRef.current = null;

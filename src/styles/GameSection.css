@@ -67,10 +67,19 @@
 	background: #d4d0c6;
 	opacity: 80%;
 	color: #151311;
-	border-radius: 22px;
-	padding: 18px 18px 16px;
+	padding: 18px;
 	text-align: center;
-	box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+	box-shadow: 0 12px 26px rgba(0, 0, 0, 0.7);
+	border: #14120f 10px;
+	border-style: inset solid;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.game--playing .game__canvas {
+		cursor:
+			url("../assets/img/sword-cursor.png") 4 4,
+			crosshair;
+	}
 }
 
 @media (max-width: 768px) {
