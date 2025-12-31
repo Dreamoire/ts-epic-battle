@@ -1,4 +1,6 @@
-import type { JSX, PointerEvent } from "react";
+import type React from "react";
+import type { JSX } from "react";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import bgMainSrc from "../assets/img/bg-main.jpg";
@@ -23,8 +25,10 @@ import monsterZombieSrc from "../assets/img/monster-zombie.png";
 import monsterAbass2Src from "../assets/img/moster-abass-2.png";
 import monsterAbassSrc from "../assets/img/moster-abass.png";
 
-import swordCursorSrc from "../assets/img/sword-cursor.png";
+import swordCursorLeftSrc from "../assets/img/sword-cursor-left.png";
+import swordCursorRightSrc from "../assets/img/sword-cursor.png";
 import swordHitSrc from "../assets/audio/sword-sound.mp3";
+import winSoundSrc from "../assets/audio/sound-win.mp3";
 
 import "../styles/GameSection.css";
 
@@ -88,12 +92,11 @@ type MonsterState = {
 
 type GamePhase = "idle" | "playing" | "win" | "gameover";
 
-const SCORE_PER_KILL = 25;
 const KILLS_TO_WIN = 20;
 
-const HERO_MAX_H_START = 400;
+const HERO_MAX_H_START = 490;
 const HERO_MAX_H_PLAY = 350;
-const MONSTER_MAX_H = 450;
+const MONSTER_MAX_H = 490;
 
 function scorePerKill(d: Difficulty): number {
 	if (d === "easy") return 25;
@@ -311,6 +314,7 @@ export function GameSection(): JSX.Element {
 	const lastFacingRef = useRef<Facing>("right");
 
 	const hitSoundRef = useRef<HTMLAudioElement | null>(null);
+	const winSoundRef = useRef<HTMLAudioElement | null>(null);
 
 	// State
 	const [phase, setPhase] = useState<GamePhase>("idle");
@@ -342,6 +346,7 @@ export function GameSection(): JSX.Element {
 	}, [lastFacing]);
 
 	// Cursor sword only during battle (desktop only)
+	// Cursor sword only during battle (desktop only)
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -352,14 +357,38 @@ export function GameSection(): JSX.Element {
 			return;
 		}
 
-		if (phase === "playing") {
-			// hotspot: adjust to where the "tip" of the sword is in your PNG
-			canvas.style.cursor = `url("${swordCursorSrc}") 10 2, crosshair`;
-		} else {
+		if (phase !== "playing") {
 			canvas.style.cursor = "default";
+			return;
 		}
 
+		canvas.style.cursor = `url("${swordCursorRightSrc}") 10 2, crosshair`;
+
+		const onMove = (e: globalThis.PointerEvent): void => {
+			const rect = canvas.getBoundingClientRect();
+			const x = e.clientX - rect.left;
+
+			const heroX = heroRef.current.pos.x;
+
+			const deadZone = 14;
+			if (Math.abs(x - heroX) < deadZone) return;
+
+			const nextFacing: Facing = x < heroX ? "left" : "right";
+
+			if (nextFacing !== lastFacingRef.current) {
+				setLastFacing(nextFacing);
+			}
+
+			canvas.style.cursor =
+				nextFacing === "left"
+					? `url("${swordCursorLeftSrc}") 22 2, crosshair`
+					: `url("${swordCursorRightSrc}") 10 2, crosshair`;
+		};
+
+		canvas.addEventListener("pointermove", onMove);
+
 		return () => {
+			canvas.removeEventListener("pointermove", onMove);
 			canvas.style.cursor = "default";
 		};
 	}, [phase]);
@@ -373,11 +402,16 @@ export function GameSection(): JSX.Element {
 		const hit = new Audio(swordHitSrc);
 		hit.preload = "auto";
 		hit.volume = isMobile ? 0.45 : 0.6;
-
 		hitSoundRef.current = hit;
+
+		const win = new Audio(winSoundSrc);
+		win.preload = "auto";
+		win.volume = isMobile ? 0.55 : 0.7;
+		winSoundRef.current = win;
 
 		return () => {
 			hitSoundRef.current = null;
+			winSoundRef.current = null;
 		};
 	}, [assetsReady]);
 
@@ -413,6 +447,13 @@ export function GameSection(): JSX.Element {
 		stopSpawn();
 		monstersRef.current = [];
 		activeKeysRef.current = new Set<MonsterKey>();
+
+		const win = winSoundRef.current;
+		if (win) {
+			win.currentTime = 0;
+			win.play().catch(() => {});
+		}
+
 		setPhase("win");
 	}, [stopSpawn]);
 
@@ -484,6 +525,24 @@ export function GameSection(): JSX.Element {
 			p.y <= m.pos.y + m.h
 		);
 	}, []);
+
+	function handleHitAtCanvasPoint(clickPos: Vec2): void {
+		const hero = heroRef.current;
+		setLastFacing(clickPos.x < hero.pos.x ? "left" : "right");
+
+		if (phaseRef.current !== "playing") return;
+
+		const monsters = monstersRef.current;
+		for (let i = monsters.length - 1; i >= 0; i -= 1) {
+			const m = monsters[i];
+			if (hitTestMonster(m, clickPos)) {
+				killMonster(m);
+				setScore((s) => s + scorePerKill(difficultyRef.current));
+				setKills((k) => k + 1);
+				break;
+			}
+		}
+	}
 
 	const spawnMonster = useCallback((): void => {
 		const canvas = canvasRef.current;
@@ -564,28 +623,14 @@ export function GameSection(): JSX.Element {
 		activeKeys.add(def.key);
 	}, []);
 
-	function onPointerDown(e: PointerEvent<HTMLCanvasElement>): void {
+	function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>): void {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 
 		const rect = canvas.getBoundingClientRect();
 		const clickPos = vec(e.clientX - rect.left, e.clientY - rect.top);
 
-		const hero = heroRef.current;
-		setLastFacing(clickPos.x < hero.pos.x ? "left" : "right");
-
-		if (phaseRef.current !== "playing") return;
-
-		const monsters = monstersRef.current;
-		for (let i = monsters.length - 1; i >= 0; i -= 1) {
-			const m = monsters[i];
-			if (hitTestMonster(m, clickPos)) {
-				killMonster(m);
-				setScore((s) => s + scorePerKill(difficultyRef.current));
-				setKills((k) => k + 1);
-				break;
-			}
-		}
+		handleHitAtCanvasPoint(clickPos);
 	}
 
 	// Preload images once
