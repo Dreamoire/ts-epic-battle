@@ -28,6 +28,39 @@
 	background-repeat: no-repeat;
 }
 
+.site-header::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+
+	height: 24px;
+	background: rgba(179, 92, 46, 0.3);
+	clip-path: polygon(
+		0 25%,
+		5% 0,
+		15% 30%,
+		25% 0,
+		35% 32%,
+		45% 0,
+		55% 30%,
+		65% 0,
+		75% 28%,
+		85% 0,
+		95% 26%,
+		100% 0,
+		100% 100%,
+		0 100%
+	);
+
+	z-index: 2;
+}
+
+.header-content {
+	position: relative;
+	z-index: 3;
+}
 .header-content {
 	padding: var(--pad);
 	margin: 0;
